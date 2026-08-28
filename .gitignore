@@ -1,45 +1,47 @@
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Python cache
+﻿.venv/
 __pycache__/
-*.py[cod]
-
-# PyInstaller
-build/
+*.pyc
+*.pyo
+.vscode/
+.idea/
 dist/
+build/
 *.spec
 
-# Backup/temporary source files
-app_backu
+# Desktop application backups
+app_v1_backup.py
+app_v1_1_backup.py
+app_v1_1_history_backup.py
+app_v1_3_backup.py
 app_backup.py
+app_backu
 app_final.py
 main_final.py
 
-# Old/test datasets
-emails.csv
+# Training datasets
 CEAS_08.csv
 Enron.csv
 Ling.csv
 Nazario.csv
 Nigerian_Fraud.csv
 SpamAssasin.csv
-
-# Large dataset
+emails.csv
 phishing_email.csv
 
-# Large trained model files
+# Development/training files
+analyze_model.py
+save_final_model.py
+train_v2.py
+confusion_matrix_v2.csv
+model_comparison_v2.csv
+misclassified_emails.csv
+scan_history.json
+
+# Unused/backup models
 random_forest_model.pkl
+random_forest_model_v1_backup.pkl
+random_forest_model_v2.pkl
 tfidf_vectorizer.pkl
-
-# IDE/system files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Logs/temp
-*.log
-*.tmp
+tfidf_vectorizer_v1_backup.pkl
+tfidf_vectorizer_v2.pkl
+.vercel

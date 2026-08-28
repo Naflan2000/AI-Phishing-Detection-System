@@ -1,0 +1,5 @@
+.venv
+venv
+*.pkl
+__pycache__
+.git

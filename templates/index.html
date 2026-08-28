@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Phishing Detection System</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #07111f;
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 60px auto;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #38bdf8;
+        }
+
+        textarea {
+            width: 100%;
+            height: 250px;
+            box-sizing: border-box;
+            background: #0d1b2a;
+            color: white;
+            border: 1px solid #20354a;
+            padding: 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            resize: vertical;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 14px 25px;
+            border: 0;
+            border-radius: 8px;
+            background: #38bdf8;
+            color: #052337;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 25px;
+            background: #0d1b2a;
+            border-radius: 10px;
+            min-height: 100px;
+        }
+
+        .phishing {
+            color: #ef4444;
+        }
+
+        .legitimate {
+            color: #22c55e;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛡 AI Phishing Detection System</h1>
+
+    <p>
+        Intelligent machine-learning based email
+        phishing detection platform.
+    </p>
+
+    <textarea
+        id="email"
+        placeholder="Paste a complete email message here..."
+    ></textarea>
+
+    <br>
+
+    <button onclick="analyzeEmail()">
+        🔍 ANALYZE EMAIL
+    </button>
+
+    <div id="result">
+        System ready.
+    </div>
+
+</div>
+
+
+<script>
+
+async function analyzeEmail() {
+
+    const email =
+        document.getElementById("email").value;
+
+    const result =
+        document.getElementById("result");
+
+    result.innerHTML =
+        "🔄 Analysing email...";
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/predict",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        email: email
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (data.insufficient) {
+
+            result.innerHTML =
+                `<div class="warning">
+                    ⚠ INSUFFICIENT CONTENT
+                </div>
+                <p>${data.message}</p>`;
+
+            return;
+        }
+
+        if (!data.success) {
+
+            result.innerHTML =
+                `<div class="warning">
+                    ⚠ ERROR
+                </div>
+                <p>${data.error}</p>`;
+
+            return;
+        }
+
+        let resultClass =
+            data.prediction === "PHISHING"
+            ? "phishing"
+            : "legitimate";
+
+        result.innerHTML = `
+
+            <h2 class="${resultClass}">
+                ${
+                    data.prediction === "PHISHING"
+                    ? "⚠ PHISHING EMAIL"
+                    : "✓ LEGITIMATE EMAIL"
+                }
+            </h2>
+
+            <p>
+                <strong>Confidence:</strong>
+                ${data.confidence}%
+            </p>
+
+            <p>
+                <strong>Risk:</strong>
+                ${data.risk}
+            </p>
+
+            <p>
+                <strong>Words:</strong>
+                ${data.statistics.words}
+            </p>
+
+            <p>
+                <strong>Characters:</strong>
+                ${data.statistics.characters}
+            </p>
+
+            <p>
+                <strong>Model:</strong>
+                ${data.model}
+            </p>
+
+            <p>
+                <strong>Features:</strong>
+                ${data.features}
+            </p>
+
+            <hr>
+
+            <p>
+                ${data.recommendation}
+            </p>
+        `;
+
+    }
+
+    catch (error) {
+
+        result.innerHTML =
+            `<div class="warning">
+                Connection error.
+            </div>
+            <p>${error}</p>`;
+    }
+}
+
+</script>
+
+</body>
+</html>
