@@ -1,5 +1,20 @@
 .venv
 venv
-*.pkl
 __pycache__
 .git
+*.pyc
+*.pyo
+
+# Local development and report files
+Figure_*.png
+Phishing_Legitimate_full.csv
+app_before_url_integration.py
+train_url_model.py
+url_confusion_matrix.csv
+url_phishing_model_backup.pkl
+web_app_before_url_integration.py
+web_app_url_backup.py
+
+# Backup / training models
+random_forest_model*.pkl
+tfidf_vectorizer*.pkl
