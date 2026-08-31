@@ -63,56 +63,57 @@ def _load_pickle(path, description):
 # ============================================================
 
 try:
-    model = _load_pickle(
-        MODEL_PATH,
-        "Logistic Regression model"
+    print(f"[AI] Loading model: {MODEL_PATH}")
+    print(f"[AI] Model exists: {os.path.exists(MODEL_PATH)}")
+
+    if os.path.exists(MODEL_PATH):
+        print(f"[AI] Model size: {os.path.getsize(MODEL_PATH)} bytes")
+
+    print(f"[AI] Loading vectorizer: {VECTORIZER_PATH}")
+    print(f"[AI] Vectorizer exists: {os.path.exists(VECTORIZER_PATH)}")
+
+    if os.path.exists(VECTORIZER_PATH):
+        print(
+            f"[AI] Vectorizer size: "
+            f"{os.path.getsize(VECTORIZER_PATH)} bytes"
+        )
+
+    model = joblib.load(MODEL_PATH)
+
+    print(
+        f"[AI] Logistic Regression loaded: "
+        f"{type(model).__name__}"
     )
-    vectorizer = _load_pickle(
-        VECTORIZER_PATH,
-        "TF-IDF vectorizer"
+
+    vectorizer = joblib.load(VECTORIZER_PATH)
+
+    print(
+        f"[AI] TF-IDF vectorizer loaded: "
+        f"{type(vectorizer).__name__}"
     )
 
     MODEL_STATUS = "ONLINE"
     MODEL_ERROR = ""
 
-    print("[AI] Logistic Regression model loaded:", MODEL_PATH)
-    print("[AI] TF-IDF vectorizer loaded:", VECTORIZER_PATH)
-
 except Exception as error:
+
+    import traceback
+
     model = None
     vectorizer = None
+
     MODEL_STATUS = "OFFLINE"
-    MODEL_ERROR = f"{type(error).__name__}: {error}"
 
-    print("[AI] MODEL LOADING FAILED")
-    print("[AI] MODEL:", MODEL_PATH)
-    print("[AI] VECTORIZER:", VECTORIZER_PATH)
-    print("[AI] ERROR:", MODEL_ERROR)
-
-
-# ============================================================
-# LOAD PRODUCTION URL MODEL (OPTIONAL)
-# ============================================================
-
-try:
-    url_model = _load_pickle(
-        URL_MODEL_PATH,
-        "URL phishing model"
+    MODEL_ERROR = (
+        f"{type(error).__name__}: {error}"
     )
-    url_feature_names = _load_pickle(
-        URL_FEATURES_PATH,
-        "URL feature names"
-    )
-    URL_MODEL_STATUS = "ONLINE"
-    URL_MODEL_ERROR = ""
 
-except Exception as error:
-    url_model = None
-    url_feature_names = None
-    URL_MODEL_STATUS = "OFFLINE"
-    URL_MODEL_ERROR = f"{type(error).__name__}: {error}"
-    print("[URL] URL MODEL LOADING FAILED:", URL_MODEL_ERROR)
-
+    print("==============================================")
+    print("AI MODEL LOADING FAILED")
+    print("==============================================")
+    print(MODEL_ERROR)
+    traceback.print_exc()
+    print("==============================================")
 
 # ============================================================
 # SECURITY PATTERNS
@@ -2386,8 +2387,16 @@ def debug_model():
         "vectorizer_path": VECTORIZER_PATH,
         "model_exists": os.path.exists(MODEL_PATH),
         "vectorizer_exists": os.path.exists(VECTORIZER_PATH),
-        "model_size": os.path.getsize(MODEL_PATH) if os.path.exists(MODEL_PATH) else 0,
-        "vectorizer_size": os.path.getsize(VECTORIZER_PATH) if os.path.exists(VECTORIZER_PATH) else 0,
+        "model_size": (
+            os.path.getsize(MODEL_PATH)
+            if os.path.exists(MODEL_PATH)
+            else 0
+        ),
+        "vectorizer_size": (
+            os.path.getsize(VECTORIZER_PATH)
+            if os.path.exists(VECTORIZER_PATH)
+            else 0
+        ),
         "model_loaded": model is not None,
         "vectorizer_loaded": vectorizer is not None
     })
