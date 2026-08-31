@@ -303,9 +303,10 @@ def analyze_threat_indicators(text):
 def predict_email(text):
 
     if model is None or vectorizer is None:
-
         raise RuntimeError(
-            "AI model or TF-IDF vectorizer could not be loaded."
+            "AI model or TF-IDF vectorizer could not be loaded. "
+            f"MODEL_STATUS={MODEL_STATUS}; "
+            f"MODEL_ERROR={MODEL_ERROR}"
         )
 
     features = vectorizer.transform([text])
