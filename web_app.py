@@ -5,6 +5,8 @@ from datetime import datetime
 from flask import Flask, jsonify, render_template_string, request
 import joblib
 
+DEPLOYMENT_VERSION = "2026-08-31-ML-DEBUG-01"
+
 try:
     from url_analyzer import analyze_text_urls
 except Exception as error:
@@ -2382,12 +2384,24 @@ def system_status():
 def debug_model():
     return jsonify({
         "status": "DEBUG_ROUTE_WORKING",
+        "deployment_version": DEPLOYMENT_VERSION,
         "model_status": MODEL_STATUS,
         "model_error": MODEL_ERROR,
+        "base_dir": BASE_DIR,
         "model_path": MODEL_PATH,
         "vectorizer_path": VECTORIZER_PATH,
-        "model_exists": os.path.exists(MODEL_PATH),
-        "vectorizer_exists": os.path.exists(VECTORIZER_PATH),
+        "model_exists": os.path.isfile(MODEL_PATH),
+        "vectorizer_exists": os.path.isfile(VECTORIZER_PATH),
+        "model_size": (
+            os.path.getsize(MODEL_PATH)
+            if os.path.isfile(MODEL_PATH)
+            else 0
+        ),
+        "vectorizer_size": (
+            os.path.getsize(VECTORIZER_PATH)
+            if os.path.isfile(VECTORIZER_PATH)
+            else 0
+        ),
         "model_loaded": model is not None,
         "vectorizer_loaded": vectorizer is not None
     })
