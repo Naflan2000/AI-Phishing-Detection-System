@@ -233,8 +233,8 @@ def analyze_threat_indicators(text):
 def predict_email(text):
 
     if model is None or vectorizer is None:
-
         raise RuntimeError(
+            MODEL_ERROR or
             "AI model or TF-IDF vectorizer could not be loaded."
         )
 
@@ -260,7 +260,6 @@ def predict_email(text):
         label = "LEGITIMATE"
 
     return label, confidence
-
 
 # ============================================================
 # PREMIUM HTML
@@ -2308,14 +2307,12 @@ def analyze():
             silent=True
         ) or {}
 
-
         text = str(
             data.get(
                 "text",
                 ""
             )
         ).strip()
-
 
         if not text:
 
@@ -2324,7 +2321,6 @@ def analyze():
                     "Email text is empty."
             }), 400
 
-
         if len(text) > 100000:
 
             return jsonify({
@@ -2332,20 +2328,11 @@ def analyze():
                     "Email is too large. Maximum 100,000 characters."
             }), 400
 
-
         # AI prediction
-
-        label, confidence = \
-            predict_email(text)
-
+        label, confidence = predict_email(text)
 
         # Threat indicators
-
-        indicators, risk_score = \
-            analyze_threat_indicators(
-                text
-            )
-
+        indicators, risk_score = analyze_threat_indicators(text)
 
         return jsonify({
 
@@ -2371,18 +2358,21 @@ def analyze():
 
         })
 
+    except Exception as e:
 
-    except Exception as error:
+        import traceback
+
+        print("==============================================")
+        print("API ANALYSIS ERROR")
+        print("==============================================")
+        print(f"{type(e).__name__}: {e}")
+        traceback.print_exc()
+        print("==============================================")
 
         return jsonify({
-
-            "error":
-                "Analysis error: " +
-                str(error)
-
+            "error": "Analysis failed.",
+            "details": f"{type(e).__name__}: {e}"
         }), 500
-
-
 # ============================================================
 # RUN APPLICATION
 # ============================================================
