@@ -17,4 +17,6 @@ web_app_url_backup.py
 
 # Backup / training models
 random_forest_model*.pkl
-tfidf_vectorizer*.pkl
+tfidf_vectorizer.pkl
+tfidf_vectorizer_v1_backup.pkl
+tfidf_vectorizer_v2.pkl

@@ -5,6 +5,11 @@ from datetime import datetime
 from flask import Flask, jsonify, render_template_string, request
 import joblib
 
+try:
+    from url_analyzer import analyze_text_urls
+except Exception:
+    analyze_text_urls = None
+
 
 # ============================================================
 # AI PHISHING DETECTION SYSTEM
@@ -23,6 +28,11 @@ VECTORIZER_PATH = os.path.join(
     "tfidf_vectorizer_final.pkl"
 )
 
+URL_MODEL_PATH = os.path.join(BASE_DIR, "url_phishing_model.pkl")
+URL_MODEL_STATUS = "OFFLINE"
+URL_MODEL_ERROR = ""
+url_model = None
+
 app = Flask(__name__)
 
 model = None
@@ -39,10 +49,53 @@ try:
     model = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
     MODEL_STATUS = "ONLINE"
+    MODEL_ERROR = ""
 
 except Exception as error:
+    model = None
+    vectorizer = None
     MODEL_STATUS = "OFFLINE"
-    MODEL_ERROR = str(error)
+    MODEL_ERROR = f"{type(error).__name__}: {error}"
+    print("AI MODEL LOADING FAILED:", MODEL_ERROR)
+
+
+# ============================================================
+# URL MODEL / LIVE URL ENGINE
+# ============================================================
+try:
+    if os.path.exists(URL_MODEL_PATH):
+        url_model = joblib.load(URL_MODEL_PATH)
+        URL_MODEL_STATUS = "READY"
+    else:
+        URL_MODEL_STATUS = "NOT FOUND"
+except Exception as error:
+    URL_MODEL_STATUS = "OFFLINE"
+    URL_MODEL_ERROR = str(error)
+
+
+def analyze_urls_live(text):
+    if analyze_text_urls is None:
+        return {"urls": [], "highest_risk": "UNAVAILABLE", "highest_score": 0, "total_urls": 0, "engine": "UNAVAILABLE"}
+    result = analyze_text_urls(text)
+    result["engine"] = "Live URL Heuristic Analyzer"
+    return result
+
+
+def combine_security_result(email_label, url_result):
+    score = float(url_result.get("highest_score", 0) or 0)
+    if email_label == "PHISHING":
+        final_label = "PHISHING"
+        reason = "The email AI model detected phishing characteristics."
+    elif score >= 60:
+        final_label = "PHISHING"
+        reason = "The email contains a high-risk URL."
+    elif score >= 35:
+        final_label = "SUSPICIOUS"
+        reason = "The email model was not phishing, but the URL analysis found medium-risk indicators."
+    else:
+        final_label = email_label
+        reason = "No high-risk URL indicators were found."
+    return {"final_label": final_label, "final_reason": reason, "url_risk_score": score, "url_risk_level": url_result.get("highest_risk", "NONE")}
 
 
 # ============================================================
@@ -233,6 +286,7 @@ def analyze_threat_indicators(text):
 def predict_email(text):
 
     if model is None or vectorizer is None:
+
         raise RuntimeError(
             MODEL_ERROR or
             "AI model or TF-IDF vectorizer could not be loaded."
@@ -260,6 +314,7 @@ def predict_email(text):
         label = "LEGITIMATE"
 
     return label, confidence
+
 
 # ============================================================
 # PREMIUM HTML
@@ -1263,6 +1318,29 @@ button:hover {
 
 
 /* ==========================================================
+   URL SECURITY PANEL
+========================================================== */
+.url-panel { margin-top:16px; padding:20px; }
+.url-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.url-badge { padding:6px 10px; border-radius:999px; font-size:9px; font-weight:800; color:var(--cyan); background:rgba(34,211,238,.08); border:1px solid rgba(34,211,238,.15); }
+.url-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+.url-card { padding:13px; border-radius:14px; background:rgba(2,8,23,.42); border:1px solid var(--border); }
+.url-card-label { color:var(--muted); font-size:9px; margin-bottom:6px; }
+.url-card-value { font-size:15px; font-weight:850; }
+.url-item { padding:13px 0; border-bottom:1px solid rgba(148,163,184,.07); }
+.url-item:last-child { border-bottom:none; }
+.url-address { font:11px/1.5 Consolas,monospace; color:#cbd5e1; word-break:break-all; }
+.url-signals { margin-top:8px; color:var(--muted); font-size:10px; line-height:1.6; }
+.risk-high { color:var(--red); }
+.risk-medium { color:var(--yellow); }
+.risk-low,.risk-minimal { color:var(--green); }
+.final-banner { margin-top:16px; padding:17px; border-radius:17px; border:1px solid rgba(34,211,238,.15); background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08)); }
+.final-banner-title { font-size:12px; color:var(--muted); margin-bottom:6px; }
+.final-banner-value { font-size:23px; font-weight:900; }
+@media (max-width:600px) { .url-summary { grid-template-columns:1fr; } }
+
+
+/* ==========================================================
    MOBILE
 ========================================================== */
 
@@ -1643,6 +1721,27 @@ button:hover {
             </div>
 
 
+        </div>
+
+        <div class="card url-panel" id="urlPanel" style="display:none;">
+            <div class="url-header">
+                <div>
+                    <h3 style="margin:0 0 5px;">🌐 URL Security Analysis</h3>
+                    <div style="font-size:10px;color:var(--muted);">Live analysis of URLs found inside the submitted email.</div>
+                </div>
+                <span class="url-badge">LIVE URL ENGINE</span>
+            </div>
+            <div class="url-summary">
+                <div class="url-card"><div class="url-card-label">URLS DETECTED</div><div class="url-card-value" id="urlCount">0</div></div>
+                <div class="url-card"><div class="url-card-label">HIGHEST RISK</div><div class="url-card-value" id="urlRisk">NONE</div></div>
+                <div class="url-card"><div class="url-card-label">RISK SCORE</div><div class="url-card-value" id="urlScore">0/100</div></div>
+            </div>
+            <div id="urlList"></div>
+            <div class="final-banner">
+                <div class="final-banner-title">FINAL SECURITY ASSESSMENT</div>
+                <div class="final-banner-value" id="finalAssessment">--</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:6px;" id="finalReason"></div>
+            </div>
         </div>
 
     </div>
@@ -2234,6 +2333,7 @@ function clearInput() {
         "loading"
     ).style.display = "none";
 
+    document.getElementById("urlPanel").style.display = "none";
 
     emailText.focus();
 
@@ -2285,6 +2385,12 @@ def system_status():
         "vectorizer":
             os.path.basename(VECTORIZER_PATH),
 
+        "url_model":
+            os.path.basename(URL_MODEL_PATH),
+
+        "url_model_status":
+            URL_MODEL_STATUS,
+
         "error":
             MODEL_ERROR
 
@@ -2307,12 +2413,14 @@ def analyze():
             silent=True
         ) or {}
 
+
         text = str(
             data.get(
                 "text",
                 ""
             )
         ).strip()
+
 
         if not text:
 
@@ -2321,6 +2429,7 @@ def analyze():
                     "Email text is empty."
             }), 400
 
+
         if len(text) > 100000:
 
             return jsonify({
@@ -2328,11 +2437,31 @@ def analyze():
                     "Email is too large. Maximum 100,000 characters."
             }), 400
 
+
         # AI prediction
-        label, confidence = predict_email(text)
+
+        label, confidence = \
+            predict_email(text)
+
 
         # Threat indicators
-        indicators, risk_score = analyze_threat_indicators(text)
+
+        indicators, risk_score = \
+            analyze_threat_indicators(
+                text
+            )
+
+        url_analysis = analyze_urls_live(text)
+        combined = combine_security_result(label, url_analysis)
+
+        for url_item in url_analysis.get("urls", []):
+            for signal in url_item.get("signals", []):
+                indicators.append({
+                    "name": "URL: " + signal,
+                    "description": url_item.get("url", ""),
+                    "severity": ("HIGH" if url_item.get("risk_score", 0) >= 60 else "MEDIUM" if url_item.get("risk_score", 0) >= 35 else "LOW")
+                })
+
 
         return jsonify({
 
@@ -2348,6 +2477,21 @@ def analyze():
             "risk_score":
                 risk_score,
 
+            "url_analysis":
+                url_analysis,
+
+            "final_label":
+                combined["final_label"],
+
+            "final_reason":
+                combined["final_reason"],
+
+            "url_risk_score":
+                combined["url_risk_score"],
+
+            "url_risk_level":
+                combined["url_risk_level"],
+
             "character_count":
                 len(text),
 
@@ -2358,21 +2502,18 @@ def analyze():
 
         })
 
-    except Exception as e:
 
-        import traceback
-
-        print("==============================================")
-        print("API ANALYSIS ERROR")
-        print("==============================================")
-        print(f"{type(e).__name__}: {e}")
-        traceback.print_exc()
-        print("==============================================")
+    except Exception as error:
 
         return jsonify({
-            "error": "Analysis failed.",
-            "details": f"{type(e).__name__}: {e}"
+
+            "error":
+                "Analysis error: " +
+                str(error)
+
         }), 500
+
+
 # ============================================================
 # RUN APPLICATION
 # ============================================================
@@ -2399,6 +2540,9 @@ if __name__ == "__main__":
         "STATUS     :",
         MODEL_STATUS
     )
+
+    print("URL ENGINE :", "LIVE URL ANALYZER")
+    print("URL MODEL  :", URL_MODEL_STATUS)
 
     if MODEL_ERROR:
 
