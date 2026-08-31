@@ -2376,6 +2376,21 @@ def system_status():
 # ============================================================
 # ANALYZE API
 # ============================================================
+@app.route("/api/debug-model", methods=["GET"])
+def debug_model():
+    return jsonify({
+        "model_status": MODEL_STATUS,
+        "model_error": MODEL_ERROR,
+        "base_dir": BASE_DIR,
+        "model_path": MODEL_PATH,
+        "vectorizer_path": VECTORIZER_PATH,
+        "model_exists": os.path.exists(MODEL_PATH),
+        "vectorizer_exists": os.path.exists(VECTORIZER_PATH),
+        "model_size": os.path.getsize(MODEL_PATH) if os.path.exists(MODEL_PATH) else 0,
+        "vectorizer_size": os.path.getsize(VECTORIZER_PATH) if os.path.exists(VECTORIZER_PATH) else 0,
+        "model_loaded": model is not None,
+        "vectorizer_loaded": vectorizer is not None
+    })
 
 @app.route(
     "/api/analyze",
